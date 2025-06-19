@@ -70,6 +70,20 @@ void FurnaceGUI::doAction(int what) {
       curExportType=GUI_EXPORT_NONE;
       displayExport=true;
       break;
+    case GUI_ACTION_MIDI_IMPORT:
+      openFileDialog(GUI_FILE_MIDI_IMPORT);
+      if (midiDialogOpen) {
+        midiDialogOpen=false;
+      }
+      nextWindow=GUI_WINDOW_MIDI_DIALOG;
+      break;
+    case GUI_ACTION_MIDI_IMPORT_BATCH:
+      openFileDialog(GUI_FILE_MIDI_IMPORT_BATCH);
+      if (midiDialogOpen) {
+        midiDialogOpen=false;
+      }
+      nextWindow=GUI_WINDOW_MIDI_DIALOG;
+      break;
     case GUI_ACTION_UNDO:
       if (curWindow==GUI_WINDOW_SAMPLE_EDIT) {
         doUndoSample();
@@ -418,6 +432,9 @@ void FurnaceGUI::doAction(int what) {
           break;
         case GUI_WINDOW_FIND:
           findOpen=false;
+          break;
+        case GUI_WINDOW_MIDI_DIALOG:
+          midiDialogOpen=false;
           break;
         case GUI_WINDOW_GROOVES:
           groovesOpen=false;

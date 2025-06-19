@@ -574,6 +574,8 @@ const FurnaceGUIActionDef guiActions[GUI_ACTION_MAX]={
   D("OPEN_BACKUP", _N("Restore backup"), 0),
   D("SAVE", _N("Save file"), FURKMOD_CMD|SDLK_s),
   D("SAVE_AS", _N("Save as"), FURKMOD_CMD|FURKMOD_SHIFT|SDLK_s),
+  D("MIDI_IMPORT", "Import MIDI file", FURKMOD_CMD|SDLK_p),
+  D("MIDI_IMPORT_BATCH", "Import MIDI folder", FURKMOD_CMD|FURKMOD_SHIFT|SDLK_p),
   D("EXPORT", _N("Export"), 0),
   D("UNDO", _N("Undo"), FURKMOD_CMD|SDLK_z),
 #ifdef __APPLE__

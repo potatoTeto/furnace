@@ -483,6 +483,10 @@ else()
   message(STATUS "Building without RtMidi")
 endif()
 
+add_subdirectory(extern/midifile EXCLUDE_FROM_ALL)
+list(APPEND DEPENDENCIES_INCLUDE_DIRS extern/midifile/include)
+list(APPEND DEPENDENCIES_LIBRARIES midifile)
+
 set(ENGINE_SOURCES
 src/log.cpp
 src/baseutils.cpp
@@ -530,6 +534,12 @@ extern/adpcm/oki_codec.c
 extern/adpcm/yma_codec.c
 extern/adpcm/ymb_codec.c
 extern/adpcm/ymz_codec.c
+
+extern/midifile/src/Binasc.cpp
+extern/midifile/src/MidiEvent.cpp
+extern/midifile/src/MidiEventList.cpp
+extern/midifile/src/MidiFile.cpp
+extern/midifile/src/MidiMessage.cpp
 
 extern/adpcm-xq-s/adpcm-lib.c
 
@@ -912,6 +922,7 @@ src/gui/insEdit.cpp
 src/gui/log.cpp
 src/gui/memory.cpp
 src/gui/mixer.cpp
+src/gui/midiImport.cpp
 src/gui/midiMap.cpp
 src/gui/newSong.cpp
 src/gui/commandPalette.cpp

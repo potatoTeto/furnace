@@ -2185,6 +2185,8 @@ void FurnaceGUI::drawSettings() {
             drawKeybindSettingsTableRow(GUI_ACTION_OPEN_BACKUP);
             drawKeybindSettingsTableRow(GUI_ACTION_SAVE);
             drawKeybindSettingsTableRow(GUI_ACTION_SAVE_AS);
+            drawKeybindSettingsTableRow(GUI_ACTION_MIDI_IMPORT);
+            drawKeybindSettingsTableRow(GUI_ACTION_MIDI_IMPORT_BATCH);
             drawKeybindSettingsTableRow(GUI_ACTION_EXPORT);
             drawKeybindSettingsTableRow(GUI_ACTION_UNDO);
             drawKeybindSettingsTableRow(GUI_ACTION_REDO);

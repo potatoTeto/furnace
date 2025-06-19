@@ -154,6 +154,7 @@ const char* aboutLine[]={
   _N("and Leandro Nini"),
   _N("dSID by DefleMask Team based on jsSID"),
   _N("Stella by Stella Team"),
+  _N("Midifile by Craig Sapp"),
   _N("QSound emulator by superctr and Valley Bell"),
   _N("VICE VIC-20 sound core by Rami Rasanen and viznut"),
   _N("VICE TED sound core by Andreas Boose, Tibor Biczo"),

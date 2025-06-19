@@ -41,6 +41,10 @@
 #include <float.h>
 #include <fmt/printf.h>
 #include <chrono>
+#include <dirent.h>   // For DIR*, opendir, readdir, closedir
+#include <sys/stat.h> // For struct stat, stat(), S_ISREG
+#include <errno.h>    // For errno, strerror()
+
 
 void process(void* u, float** in, float** out, int inChans, int outChans, unsigned int size) {
   ((DivEngine*)u)->nextBuf(in,out,inChans,outChans,size);
@@ -3734,6 +3738,72 @@ std::vector<String>& DivEngine::getMidiIns() {
 
 std::vector<String>& DivEngine::getMidiOuts() {
   return midiOuts;
+}
+
+smf::MidiFile* DivEngine::getMidiImportFile() {
+  return &midiImportFile;
+}
+
+String DivEngine::getMidiImportFilename() {
+  return midiImportFilename;
+}
+
+bool DivEngine::loadMidiImportFile(String filename) {
+  midiImportFilename.assign(filename);
+  midiImportFile.read(filename);
+  if (!midiImportFile.status())
+    return false;
+
+  logD("opened MIDI file %s with %d tracks", filename.c_str(), midiImportFile.getNumTracks());
+  // midifile.absoluteTicks();  // done by default
+  midiImportFile.sortTracks();
+
+  return true;
+}
+
+std::map<String, smf::MidiFile> DivEngine::getMidiImportBatchFiles() {
+  return midiImportBatchFiles;
+}
+
+String DivEngine::getMidiImportBatchDir() {
+  return midiImportBatchDir;
+}
+
+bool DivEngine::loadMidiImportBatchFiles(String dirname) {
+  midiImportBatchDir = dirname;
+  midiImportBatchFiles.clear();
+
+  DIR* dir = opendir(dirname.c_str());
+  if (!dir) {
+    logE("MIDI import directory could not be opened: %s", strerror(errno));
+    lastError = fmt::sprintf(_("Unable to open MIDI import dir: %s"), strerror(errno));
+    return false;
+  }
+
+  struct dirent* ent;
+  while ((ent = readdir(dir)) != nullptr) {
+    String fn(ent->d_name);
+    if (fn == "." || fn == "..") continue;
+
+    String fullPath = dirname + "/" + fn;
+
+    struct stat st;
+    if (stat(fullPath.c_str(), &st) != 0) continue;          // skip unreadable files
+    if (!S_ISREG(st.st_mode)) continue;                     // skip non-regular files
+
+    smf::MidiFile mf;
+    if (!mf.read(fullPath)) {
+      logW("Could not open %s as MIDI file, skipping...", fn.c_str());
+      continue;
+    }
+
+    logD("Opened MIDI file %s with %d tracks", fn.c_str(), mf.getNumTracks());
+    mf.sortTracks(); // Already absoluteTicks() by default
+    midiImportBatchFiles[fn] = mf;
+  }
+
+  closedir(dir);
+  return true;
 }
 
 void DivEngine::rescanAudioDevices() {

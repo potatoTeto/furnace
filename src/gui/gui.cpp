@@ -40,6 +40,7 @@
 #include <stdint.h>
 #include <zlib.h>
 #include <fmt/printf.h>
+#include <MidiFile.h>
 #include <stdexcept>
 
 #ifdef _WIN32
@@ -1907,6 +1908,16 @@ void FurnaceGUI::openFileDialog(FurnaceGUIFileDialogs type) {
         dpiScale
       );
       break;
+    case GUI_FILE_MIDI_IMPORT:
+    case GUI_FILE_MIDI_IMPORT_BATCH: 
+      if (!dirExists(workingDirMidi)) workingDirMidi = getHomeDir();
+      hasOpened = fileDialog->openLoad(
+        "Import MIDI",
+        {"MIDI sequence", "*.mid *.midi *.smf"},
+        workingDirMidi,
+        dpiScale
+      );
+      break;
     case GUI_FILE_WAVE_OPEN:
     case GUI_FILE_WAVE_OPEN_REPLACE:
       if (!dirExists(workingDirWave)) workingDirWave=getHomeDir();
@@ -3713,6 +3724,7 @@ bool FurnaceGUI::loop() {
   DECLARE_METRIC(mobileOrderSel)
   DECLARE_METRIC(subSongs)
   DECLARE_METRIC(findReplace)
+  DECLARE_METRIC(midiDialog)
   DECLARE_METRIC(spoiler)
   DECLARE_METRIC(pattern)
   DECLARE_METRIC(editControls)
@@ -4544,6 +4556,15 @@ bool FurnaceGUI::loop() {
           }
         }
         ImGui::Separator();
+        if (ImGui::MenuItem("import midi file...",BIND_FOR(GUI_ACTION_MIDI_IMPORT))) {
+          openFileDialog(GUI_FILE_MIDI_IMPORT);
+          midiDialogOpen=true;
+        }
+        if (ImGui::MenuItem("import midi folder...",BIND_FOR(GUI_ACTION_MIDI_IMPORT_BATCH))) {
+          openFileDialog(GUI_FILE_MIDI_IMPORT_BATCH);
+          midiDialogOpen=true;
+        }
+        ImGui::Separator();
         if (!settings.classicChipOptions) {
           if (ImGui::MenuItem(_("manage chips"))) {
             nextWindow=GUI_WINDOW_SYS_MANAGER;
@@ -4964,6 +4985,7 @@ bool FurnaceGUI::loop() {
 
       MEASURE(subSongs,drawSubSongs());
       MEASURE(findReplace,drawFindReplace());
+      MEASURE(midiDialog,drawMidiDialog());
       MEASURE(spoiler,drawSpoiler());
       MEASURE(pattern,drawPattern());
       MEASURE(editControls,drawEditControls());
@@ -5087,6 +5109,10 @@ bool FurnaceGUI::loop() {
         case GUI_FILE_INS_SAVE_DMP:
         case GUI_FILE_INS_SAVE_ALL:
           workingDirIns=fileDialog->getPath()+DIR_SEPARATOR_STR;
+          break;
+        case GUI_FILE_MIDI_IMPORT:
+        case GUI_FILE_MIDI_IMPORT_BATCH:
+          workingDirMidi=fileDialog->getPath()+DIR_SEPARATOR_STR;
           break;
         case GUI_FILE_WAVE_OPEN:
         case GUI_FILE_WAVE_OPEN_REPLACE:
@@ -5659,6 +5685,16 @@ bool FurnaceGUI::loop() {
               }
               break;
             }
+            case GUI_FILE_MIDI_IMPORT:
+              if (!(e->loadMidiImportFile(copyOfName))) {
+                showError("could not open MIDI file!");
+              }
+              break;
+            case GUI_FILE_MIDI_IMPORT_BATCH:
+              if (!(e->loadMidiImportBatchFiles(workingDirMidi))) {
+                showError("could not open MIDI files!");
+              }
+              break;
             case GUI_FILE_EXPORT_VGM: {
               SafeWriter* w=e->saveVGM(willExport,vgmExportLoop,vgmExportVersion,vgmExportPatternHints,vgmExportDirectStream,vgmExportTrailingTicks,vgmExportDPCM07,vgmExportCorrectedRate);
               if (w!=NULL) {
@@ -8069,6 +8105,7 @@ void FurnaceGUI::syncState() {
   workingDir=e->getConfString("lastDir",homeDir);
   workingDirSong=e->getConfString("lastDirSong",workingDir);
   workingDirIns=e->getConfString("lastDirIns",workingDir);
+  workingDirMidi=e->getConfString("lastDirMidi",workingDir);
   workingDirWave=e->getConfString("lastDirWave",workingDir);
   workingDirSample=e->getConfString("lastDirSample",workingDir);
   workingDirAudioExport=e->getConfString("lastDirAudioExport",workingDir);
@@ -8119,6 +8156,7 @@ void FurnaceGUI::syncState() {
   subSongsOpen=e->getConfBool("subSongsOpen",true);
   findOpen=e->getConfBool("findOpen",false);
   spoilerOpen=e->getConfBool("spoilerOpen",false);
+  midiDialogOpen=e->getConfBool("midiDialogOpen",false);
   userPresetsOpen=e->getConfBool("userPresetsOpen",false);
 
   insListDir=e->getConfBool("insListDir",false);
@@ -8229,6 +8267,7 @@ void FurnaceGUI::commitState(DivConfig& conf) {
   conf.set("lastDir",workingDir);
   conf.set("lastDirSong",workingDirSong);
   conf.set("lastDirIns",workingDirIns);
+  conf.set("lastDirMidi",workingDirMidi);
   conf.set("lastDirWave",workingDirWave);
   conf.set("lastDirSample",workingDirSample);
   conf.set("lastDirAudioExport",workingDirAudioExport);
@@ -8276,6 +8315,7 @@ void FurnaceGUI::commitState(DivConfig& conf) {
   conf.set("subSongsOpen",subSongsOpen);
   conf.set("findOpen",findOpen);
   conf.set("spoilerOpen",spoilerOpen);
+  conf.set("midiDialogOpen",midiDialogOpen);
   conf.set("userPresetsOpen",userPresetsOpen);
 
   // commit dir state
@@ -8656,6 +8696,7 @@ FurnaceGUI::FurnaceGUI():
   chanOscOpen(false),
   subSongsOpen(true),
   findOpen(false),
+  midiDialogOpen(false),
   spoilerOpen(false),
   patManagerOpen(false),
   sysManagerOpen(false),
@@ -8962,6 +9003,16 @@ FurnaceGUI::FurnaceGUI():
   pianoOffsetEdit(6),
   pianoView(PIANO_LAYOUT_STANDARD),
   pianoInputPadMode(PIANO_INPUT_PAD_DISABLE),
+  midiImportChannel(0),
+  midiImportTrack(0),
+  midiImportStartMeasure(0),
+  midiImportTargetChannel(0),
+  midiImportPattern(0),
+  midiImportSpeedMultiplier(0),
+  midiImportEnableNoteOff(true),
+  midiImportEnableVel(true),
+  midiImportEnableCC(false),
+  midiImportOmniChannel(false),
 #endif
   hasACED(false),
   waveGenBaseShape(0),

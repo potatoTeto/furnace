@@ -336,6 +336,7 @@ TAParamResult pVersion(String) {
   printf("- reSIDfp by Dag Lem, Antti Lankila and Leandro Nini (GPLv2)\n");
   printf("- dSID by DefleMask Team (based on jsSID by Hermit) (MIT)\n");
   printf("- Stella by Stella Team (GPLv2)\n");
+  printf("- Midifile by Craig Sapp (BSD 2-clause)\n");
   printf("- vgsound_emu (second version, modified version) by cam900 (zlib license)\n");
   printf("- Impulse Tracker GUS volume table by Jeffrey Lim (BSD 3-clause)\n");
   printf("- Schism Tracker IT sample decompression (GPLv2)\n");
